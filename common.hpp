@@ -12,12 +12,23 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <regex>
+
+#include "JsonParser.hpp"
 
 const std::array<char, 8> KNOT_SIGNATURE = {'K', 'N', 'O', 'T', 'E', 'N', 'C', '1'};
 
+
+/**
+ * This structure holds various configuration parameters used to determine
+ * which files should be processed and which should be skipped.
+ */
 struct Config {
+    /** A vector of file extensions to be processed. */
     std::vector<std::string> extensions;
+    /** A vector of specific filenames or paths to be processed. */
     std::vector<std::string> specific_files;
+    /** A vector of folder names or paths to be skipped during processing. */
     std::vector<std::string> skip_folders;
 };
 
@@ -25,9 +36,18 @@ struct Config {
 std::string getPassword() {
     std::string password;
     std::cout << "Enter password: ";
-    std::cin >> password;
+    std::cin  >> password;
     return password;
 }
+
+
+
+bool matchesWildcard(const std::string& text, const std::string& pattern) {
+    std::string regexPattern = std::regex_replace(pattern, std::regex("\\*"), ".*");
+    regexPattern = "^" + regexPattern + "$";
+    return std::regex_match(text, std::regex(regexPattern));
+}
+
 
 
 Config parseConfigFile(const std::string& filename) {
@@ -41,35 +61,44 @@ Config parseConfigFile(const std::string& filename) {
     buffer << file.rdbuf();
     std::string content = buffer.str();
 
-    // Simple JSON parsing (without a 3rd-party library)
-    size_t pos = 0;
-    auto parseArray = [&](const std::string& key, std::vector<std::string>& vector) {
-        pos = content.find("\"" + key + "\"", pos);
-        if (pos == std::string::npos) return;
-        pos = content.find('[', pos);
-        if (pos == std::string::npos) return;
-        size_t end = content.find(']', pos);
-        if (end == std::string::npos) return;
-        std::string arrayContent = content.substr(pos + 1, end - pos - 1);
-        std::istringstream iss(arrayContent);
-        std::string item;
-        while (std::getline(iss, item, ',')) {
-            item.erase(0, item.find_first_not_of(" \t\""));
-            item.erase(item.find_last_not_of(" \t\"") + 1);
-            vector.push_back(item);
-        }
-        pos = end;
-    };
+    JsonParser::JsonValue jsonConfig = JsonParser::parse(content);
 
-    parseArray("extensions", config.extensions);
-    parseArray("specific_files", config.specific_files);
-    parseArray("skip_folders", config.skip_folders);
+    if (auto* obj = std::get_if<JsonParser::JsonObject>(&jsonConfig)) {
+        if (auto* extensions = std::get_if<JsonParser::JsonArray>(&(*obj)["extensions"])) {
+            for (const auto& ext : *extensions) {
+                if (auto* str = std::get_if<std::string>(&ext)) {
+                    config.extensions.push_back(*str);
+                }
+            }
+        }
+
+        if (auto* specific_files = std::get_if<JsonParser::JsonArray>(&(*obj)["specific_files"])) {
+            for (const auto& file : *specific_files) {
+                if (auto* str = std::get_if<std::string>(&file)) {
+                    config.specific_files.push_back(*str);
+                }
+            }
+        }
+
+        if (auto* skip_folders = std::get_if<JsonParser::JsonArray>(&(*obj)["skip_folders"])) {
+            for (const auto& folder : *skip_folders) {
+                if (auto* str = std::get_if<std::string>(&folder)) {
+                    config.skip_folders.push_back(*str);
+                }
+            }
+        }
+    } else {
+        throw std::runtime_error("Invalid JSON format in config file");
+    }
 
     return config;
 }
 
 
-std::vector<std::string> getTargetFiles(const Config& config, int maxDepth = -1) {
+std::vector<std::string> getTargetFiles(
+    const Config& config, 
+    int maxDepth = -1
+) {
     std::vector<std::string> targetFiles;
     
     auto options = (maxDepth < 0) ? std::filesystem::directory_options::none
@@ -78,12 +107,12 @@ std::vector<std::string> getTargetFiles(const Config& config, int maxDepth = -1)
     std::filesystem::path parentPath = std::filesystem::current_path().parent_path();
     std::cout << "Searching for files in: " << parentPath << std::endl;
     
-    // Process specific files
+
     for (const auto& file : config.specific_files) {
         std::filesystem::path filePath = std::filesystem::absolute(file);
         if (std::filesystem::is_regular_file(filePath)) {
             targetFiles.push_back(filePath.string());
-            std::cout << "Added specific file: " << filePath << std::endl;
+            std::cout << "Found specific file: " << filePath << std::endl;
         } else {
             std::cout << "Skipping non-regular file: " << filePath << std::endl;
         }
@@ -98,26 +127,30 @@ std::vector<std::string> getTargetFiles(const Config& config, int maxDepth = -1)
             continue;
         }
         
-        // Check if the current path should be skipped
+        
+        
+        // In getTargetFiles function:
         bool skip = false;
-        for (const auto& skip_folder : config.skip_folders) {
-            if (it->path().string().find(skip_folder) != std::string::npos) {
+        std::filesystem::path current_path = it->path();
+        for (const auto& skip_pattern : config.skip_folders) {
+            if (matchesWildcard(current_path.string(), skip_pattern)) {
                 skip = true;
                 it.disable_recursion_pending();
                 break;
             }
         }
         if (skip) continue;
+
+
         
         if (it->is_regular_file()) {
             std::string extension = it->path().extension().string();
-            // std::cout << "Found file: " << it->path().string() << " with extension: " << extension << std::endl;
             
             // Check if the extension (including the dot) is in the config
             for (const auto& target_ext : config.extensions) {
                 if (extension == target_ext) {
                     targetFiles.push_back(it->path().string());
-                    std::cout << "Added to target files: " << it->path().string() << std::endl;
+                    // std::cout << "Added to target files: " << it->path().string() << std::endl;
                     break;
                 }
             }

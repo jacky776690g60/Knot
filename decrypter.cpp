@@ -61,9 +61,8 @@ int main() {
         std::string password = getPassword();
         
         for (const auto& file : knotFiles) {
-            std::cout << "Checking file: " << file << std::endl;
+            std::cout << "Processing file: " << file << std::endl;
             if (isKnotEncryptedFile(file)) {
-                std::cout << "File is encrypted, proceeding with decryption." << std::endl;
                 try {
                     decryptFile(file, password);
                     std::cout << "Successfully decrypted: " << file << std::endl;
@@ -71,7 +70,7 @@ int main() {
                     std::cerr << "Error decrypting " << file << ": " << e.what() << std::endl;
                 }
             } else {
-                std::cout << "Skipped (not a valid Knot encrypted file): " << file << std::endl;
+                std::cout << "Skipped (not a valid Knot encrypted file)..." << file << std::endl;
             }
         }
     } catch (const std::exception& e) {

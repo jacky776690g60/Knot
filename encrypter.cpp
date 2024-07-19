@@ -49,10 +49,10 @@ void encryptFile(const std::string& filename, const std::string& password) {
 
 int main() {
     try {
+        std::cout << "=== Parsing config ===" << std::endl;
         Config config = parseConfigFile("config.json");
         
-        std::cout << "Parsed config:" << std::endl;
-        std::cout << "Extensions: ";
+        std::cout << "Target Extensions: ";
         for (const auto& ext : config.extensions) {
             std::cout << ext << " ";
         }
@@ -68,9 +68,8 @@ int main() {
         std::string password = getPassword();
         
         for (const auto& file : targetFiles) {
-            std::cout << "Checking file: " << file << std::endl;
+            std::cout << "Processing file: " << file << std::endl;
             if (!isKnotEncryptedFile(file)) {
-                std::cout << "File is not encrypted, proceeding with encryption." << std::endl;
                 try {
                     encryptFile(file, password);
                     std::cout << "Successfully encrypted: " << file << std::endl;
@@ -78,7 +77,7 @@ int main() {
                     std::cerr << "Error encrypting " << file << ": " << e.what() << std::endl;
                 }
             } else {
-                std::cout << "Skipped (already encrypted): " << file << std::endl;
+                std::cout << "Skipped (already encrypted)..." << std::endl;
             }
         }
     } catch (const std::exception& e) {
