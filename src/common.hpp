@@ -171,3 +171,36 @@ bool isKnotEncryptedFile(const std::string& filename) {
 
     return (file && signature == KNOT_SIGNATURE);
 }
+
+
+
+std::vector<std::string> findKnotFiles() {
+    std::vector<std::string> knotFiles;
+    std::filesystem::path parentPath = std::filesystem::current_path().parent_path();
+    std::cout << "Searching for .knot files in: " << parentPath << std::endl;
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(parentPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".knot") {
+            knotFiles.push_back(entry.path().string());
+        }
+    }
+
+    return knotFiles;
+}
+
+
+void removeKnotFile(const std::string& filename) {
+    if (isKnotEncryptedFile(filename)) {
+        std::filesystem::remove(filename);
+        std::cout << "Removed: " << filename << std::endl;
+    } else {
+        std::cout << "Skipped (not a Knot encrypted file): " << filename << std::endl;
+    }
+}
+
+
+std::string toLower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return s;
+}
