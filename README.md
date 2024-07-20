@@ -26,6 +26,7 @@
 
 <h1 id="Requirements" style="font-weight: 700; text-transform: capitalize; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #EA638C;">&#9698; Requirements</h1>
 <a href='#toc0' style='background: #000; margin:0 auto; padding: 5px; border-radius: 5px;'>Back to ToC</a><br><br>
+
 1. CMake (3.10+)
 2. C++ 17 ↑
 
@@ -42,6 +43,7 @@
 
 <h1 id="SupportedOS" style="font-weight: 700; text-transform: capitalize; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #EA638C;">&#9698; Supported OS</h1>
 <a href='#toc0' style='background: #000; margin:0 auto; padding: 5px; border-radius: 5px;'>Back to ToC</a><br><br>
+
 - MacOS
 - Windows
 - Linux
