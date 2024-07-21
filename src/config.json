@@ -1,5 +1,5 @@
 {
-  "extensions": [".py", ".js", ".java"],
+  "extensions": [".py", ".js", ".ts", ".java", ".c", ".h", ".cpp", ".hpp"],
   "specific_files": [
     
   ],

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
 # Set output directory
-set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/dist/knot")
+set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/dist/_knot")
 # Add the src directory
 add_subdirectory(src)
 
