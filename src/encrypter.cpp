@@ -44,6 +44,28 @@ void encryptFile(const std::string& filename, const std::string& password) {
 
     inFile.close();
     outFile.close();
+
+
+    // Get the executable's directory
+    std::filesystem::path executablePath = std::filesystem::current_path();
+
+    // Create refs folder in the executable's directory if it doesn't exist
+    std::filesystem::path refsPath = executablePath / "refs";
+    std::filesystem::create_directories(refsPath);
+
+    // Create empty file in refs folder
+    std::filesystem::path emptyFilePath = refsPath / filePath.filename();
+    std::ofstream emptyFile(emptyFilePath);
+    if (!emptyFile) {
+        throw std::runtime_error("Unable to create empty file: " + emptyFilePath.string());
+    }
+    
+    emptyFile << "reference";
+    emptyFile.close();
+
+    if (!emptyFile) {
+        throw std::runtime_error("Error writing to reference file: " + emptyFilePath.string());
+    }
 }
 
 

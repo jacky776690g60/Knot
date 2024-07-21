@@ -101,13 +101,47 @@ std::vector<std::string> getTargetFiles(
 ) {
     std::vector<std::string> targetFiles;
     
-    auto options = (maxDepth < 0) ? std::filesystem::directory_options::none
-                                  : std::filesystem::directory_options::follow_directory_symlink;
-    
-    std::filesystem::path parentPath = std::filesystem::current_path().parent_path();
+    std::filesystem::path currentFilePath = std::filesystem::current_path();
+    std::filesystem::path parentPath = currentFilePath.parent_path();
     std::cout << "Searching for files in: " << parentPath << std::endl;
-    
 
+    // Function to recursively search directories
+    std::function<void(const std::filesystem::path&, int)> searchDirectory = 
+    [&](const std::filesystem::path& path, int depth) {
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            if (maxDepth >= 0 && depth > maxDepth) {
+                break;
+            }
+
+            // Skip the current executable's directory
+            if (entry.path() == currentFilePath) {
+                continue;
+            }
+
+            if (entry.is_directory()) {
+                bool skip = false;
+                for (const auto& skip_pattern : config.skip_folders) {
+                    if (matchesWildcard(entry.path().string(), skip_pattern)) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (!skip) {
+                    searchDirectory(entry.path(), depth + 1);
+                }
+            } else if (entry.is_regular_file()) {
+                std::string extension = entry.path().extension().string();
+                for (const auto& target_ext : config.extensions) {
+                    if (extension == target_ext) {
+                        targetFiles.push_back(entry.path().string());
+                        break;
+                    }
+                }
+            }
+        }
+    };
+
+    // Add specific files
     for (const auto& file : config.specific_files) {
         std::filesystem::path filePath = std::filesystem::absolute(file);
         if (std::filesystem::is_regular_file(filePath)) {
@@ -117,46 +151,10 @@ std::vector<std::string> getTargetFiles(
             std::cout << "Skipping non-regular file: " << filePath << std::endl;
         }
     }
-    
-    for (auto it = std::filesystem::recursive_directory_iterator(parentPath, options);
-         it != std::filesystem::recursive_directory_iterator();
-         ++it) {
-        
-        if (maxDepth >= 0 && it.depth() > maxDepth) {
-            it.disable_recursion_pending();
-            continue;
-        }
-        
-        
-        
-        // In getTargetFiles function:
-        bool skip = false;
-        std::filesystem::path current_path = it->path();
-        for (const auto& skip_pattern : config.skip_folders) {
-            if (matchesWildcard(current_path.string(), skip_pattern)) {
-                skip = true;
-                it.disable_recursion_pending();
-                break;
-            }
-        }
-        if (skip) continue;
 
+    // Start the recursive search
+    searchDirectory(parentPath, 0);
 
-        
-        if (it->is_regular_file()) {
-            std::string extension = it->path().extension().string();
-            
-            // Check if the extension (including the dot) is in the config
-            for (const auto& target_ext : config.extensions) {
-                if (extension == target_ext) {
-                    targetFiles.push_back(it->path().string());
-                    // std::cout << "Added to target files: " << it->path().string() << std::endl;
-                    break;
-                }
-            }
-        }
-    }
-    
     std::cout << "Total target files found: " << targetFiles.size() << std::endl;
     return targetFiles;
 }
