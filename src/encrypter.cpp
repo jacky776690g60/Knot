@@ -57,7 +57,7 @@ void encryptFile(const std::string& filename, const std::string& password) {
         throw std::runtime_error("Unable to create empty file: " + emptyFilePath.string());
     }
     
-    int repetitions = 1;
+    int repetitions = 5;
     for (int i = 0; i < repetitions; ++i) {
         emptyFile << "reference" << (i < repetitions-1 ? "\n" : "");
     }

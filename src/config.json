@@ -7,8 +7,10 @@
     "*/dist", 
     ".vscode", 
     ".git", 
-    "*/venv", 
-    "*/__pycache__", 
-    "*/node_modules"
+    "**/*venv", 
+    "**/_knot", 
+    "**/_Knot", 
+    "**/__pycache__", 
+    "**/node_modules"
   ]
 }
