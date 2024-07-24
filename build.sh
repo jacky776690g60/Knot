@@ -21,7 +21,7 @@ if $FORCE; then
     echo "Changing to $BUILD_DIR directory ..."
     cd "$BUILD_DIR" || exit
 
-    echo "Starting CMake ..."
+    echo "Running CMake ..."
     cmake "$SOURCE_DIR"
 
     if [ $? -ne 0 ]; then

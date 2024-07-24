@@ -4,9 +4,6 @@
 | Created by Jack on 07/14, 2024
 | Copyright © 2024 jacktogon. All rights reserved.
 ================================================================= */
-#include <filesystem>
-#include <stdexcept>
-
 #include "common.hpp"
 
 void encryptFile(const std::string& filename, const std::string& password) {

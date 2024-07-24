@@ -13,6 +13,7 @@
 #include <string>
 #include <filesystem>
 #include <regex>
+#include <stdexcept>
 
 #include "JsonParser.hpp"
 
@@ -43,9 +44,15 @@ std::string getPassword() {
 
 
 bool matchesWildcard(const std::string& text, const std::string& pattern) {
-    std::string regexPattern = std::regex_replace(pattern, std::regex("\\*"), ".*");
-    regexPattern = "^" + regexPattern + "$";
-    return std::regex_match(text, std::regex(regexPattern));
+    std::string regexPattern = pattern;
+    // Handle ** (match any including path separators)
+    regexPattern = std::regex_replace(regexPattern, std::regex("\\*\\*"), ".*");
+    // Handle * (within a path segment)
+    regexPattern = std::regex_replace(regexPattern, std::regex("\\*"), "[^/]*");
+    // Handle ? (match any single character within a path segment)
+    regexPattern = std::regex_replace(regexPattern, std::regex("\\?"), "[^/]");
+    //regexPattern = "^" + regexPattern + "$";
+    return std::regex_search(text, std::regex(regexPattern));
 }
 
 
@@ -102,44 +109,45 @@ std::vector<std::string> getTargetFiles(
     std::vector<std::string> targetFiles;
     
     std::filesystem::path currentFilePath = std::filesystem::current_path();
-    std::filesystem::path parentPath = currentFilePath.parent_path();
+    std::filesystem::path parentPath      = currentFilePath.parent_path();
     std::cout << "Searching for files in: " << parentPath << std::endl;
 
     // Function to recursively search directories
     std::function<void(const std::filesystem::path&, int)> searchDirectory = 
-    [&](const std::filesystem::path& path, int depth) {
-        for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            if (maxDepth >= 0 && depth > maxDepth) {
-                break;
-            }
+        [&](const std::filesystem::path& path, int depth) {
+            for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                if (maxDepth >= 0 && depth > maxDepth) {
+                    break;
+                }
 
-            // Skip the current executable's directory
-            if (entry.path() == currentFilePath) {
-                continue;
-            }
+                // Skip the current executable's directory
+                if (entry.path() == currentFilePath) {
+                    continue;
+                }
 
-            if (entry.is_directory()) {
-                bool skip = false;
-                for (const auto& skip_pattern : config.skip_folders) {
-                    if (matchesWildcard(entry.path().string(), skip_pattern)) {
-                        skip = true;
-                        break;
+                if (entry.is_directory()) {
+                    bool skip = false;
+                    for (const auto& skip_pattern : config.skip_folders) {
+                        if (matchesWildcard(entry.path().string(), skip_pattern)) {
+                            skip = true;
+                            std::cout << "\033[33m" << "Skipping folder: " << entry.path() << "\033[0m" << std::endl;
+                            break;
+                        }
+                    }
+                    if (!skip) {
+                        searchDirectory(entry.path(), depth + 1);
+                    }
+                } else if (entry.is_regular_file()) {
+                    std::string extension = entry.path().extension().string();
+                    for (const auto& target_ext : config.extensions) {
+                        if (extension == target_ext) {
+                            targetFiles.push_back(entry.path().string());
+                            break;
+                        }
                     }
                 }
-                if (!skip) {
-                    searchDirectory(entry.path(), depth + 1);
-                }
-            } else if (entry.is_regular_file()) {
-                std::string extension = entry.path().extension().string();
-                for (const auto& target_ext : config.extensions) {
-                    if (extension == target_ext) {
-                        targetFiles.push_back(entry.path().string());
-                        break;
-                    }
-                }
             }
-        }
-    };
+        };
 
     // Add specific files
     for (const auto& file : config.specific_files) {
