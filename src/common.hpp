@@ -17,22 +17,13 @@
 
 #include "JsonParser.hpp"
 
-const std::array<char, 8> KNOT_SIGNATURE = {'K', 'N', 'O', 'T', 'E', 'N', 'C', '1'};
 
 
-/**
- * This structure holds various configuration parameters used to determine
- * which files should be processed and which should be skipped.
- */
-struct Config {
-    /** A vector of file extensions to be processed. */
-    std::vector<std::string> extensions;
-    /** A vector of specific filenames or paths to be processed. */
-    std::vector<std::string> specific_files;
-    /** A vector of folder names or paths to be skipped during processing. */
-    std::vector<std::string> skip_folders;
-};
-
+std::string toLower(std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return s;
+}
 
 std::string getPassword() {
     std::string password;
@@ -40,8 +31,6 @@ std::string getPassword() {
     std::cin  >> password;
     return password;
 }
-
-
 
 bool matchesWildcard(const std::string& text, const std::string& pattern) {
     std::string regexPattern = pattern;
@@ -55,6 +44,21 @@ bool matchesWildcard(const std::string& text, const std::string& pattern) {
     return std::regex_search(text, std::regex(regexPattern));
 }
 
+
+
+const std::array<char, 8> KNOT_SIGNATURE = {'K', 'N', 'O', 'T', 'E', 'N', 'C', '1'};
+/**
+ * This structure holds various configuration parameters used to determine
+ * which files should be processed and which should be skipped.
+ */
+struct Config {
+    /** A vector of file extensions to be processed. */
+    std::vector<std::string> extensions;
+    /** A vector of specific filenames or paths to be processed. */
+    std::vector<std::string> specific_files;
+    /** A vector of folder names or paths to be skipped during processing. */
+    std::vector<std::string> skip_folders;
+};
 
 
 Config parseConfigFile(const std::string& filename) {
@@ -202,11 +206,4 @@ void removeKnotFile(const std::string& filename) {
     } else {
         std::cout << "Skipped (not a Knot encrypted file): " << filename << std::endl;
     }
-}
-
-
-std::string toLower(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c){ return std::tolower(c); });
-    return s;
 }

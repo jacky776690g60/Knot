@@ -25,7 +25,7 @@
 <a href='#toc0' style='background: #000; margin:0 auto; padding: 5px; border-radius: 5px;'>Back to ToC</a><br><br>
 
 1. build the executables
-2. copy the `knot/` folder inside of `build/dist/` to the root folder of your other project
+2. copy the `_knot/` folder inside of `build/dist/` to the root folder of your other project
 3. In that project, `cd knot/` and then run `./encrypter` or `./decrypter`
 4. Enter a password for either encryption or decryption
 5. (Optional) run `./cleaner` to remove all .knot files

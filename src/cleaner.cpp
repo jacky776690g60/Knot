@@ -4,13 +4,7 @@
 | Created by Jack on 07/20, 2024
 | Copyright © 2024 jacktogon. All rights reserved.
 ================================================================= */
-#include <filesystem>
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-
 #include "common.hpp"
-
 
 int main() {
     try {
