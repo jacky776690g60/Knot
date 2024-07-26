@@ -14,9 +14,19 @@
 #include <filesystem>
 #include <regex>
 #include <stdexcept>
+#include <random>
+#include <chrono>
+#include <algorithm>
+#include <functional>
+#include <termios.h>
+#include <unistd.h>
 
 #include "JsonParser.hpp"
 
+
+const int SALT_SIZE = 16;
+const int KEY_SIZE  = 32;
+const int IV_SIZE   = 16;
 
 
 std::string toLower(std::string s) {
@@ -26,9 +36,34 @@ std::string toLower(std::string s) {
 }
 
 std::string getPassword() {
+    const char BACKSPACE = 127;
+    const char RETURN = 10;
+
     std::string password;
+    char ch = 0;
+
+    termios oldt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    termios newt = oldt;
+    newt.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
     std::cout << "Enter password: ";
-    std::cin  >> password;
+    while ((ch = getchar()) != RETURN) {
+        if (ch == BACKSPACE) {
+            if (password.length() != 0) {
+                std::cout << "\b \b";
+                password.resize(password.length() - 1);
+            }
+        } else {
+            password += ch;
+            std::cout << '*';
+        }
+    }
+    std::cout << std::endl;
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
     return password;
 }
 
@@ -43,6 +78,33 @@ bool matchesWildcard(const std::string& text, const std::string& pattern) {
     //regexPattern = "^" + regexPattern + "$";
     return std::regex_search(text, std::regex(regexPattern));
 }
+
+std::vector<uint8_t> generateRandomBytes(size_t size) {
+    std::vector<uint8_t> bytes(size);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 255);
+    std::generate(bytes.begin(), bytes.end(), [&]() { return static_cast<uint8_t>(dis(gen)); });
+    return bytes;
+}
+
+
+
+std::vector<uint8_t> deriveKey(const std::string& password, const std::vector<uint8_t>& salt) {
+    std::vector<uint8_t> key(KEY_SIZE);
+    std::vector<uint8_t> data = salt;
+    data.insert(data.end(), password.begin(), password.end());
+    
+    for (int i = 0; i < 10000; ++i) {
+        std::hash<std::string> hasher;
+        auto hash = hasher(std::string(data.begin(), data.end()));
+        std::copy_n(reinterpret_cast<uint8_t*>(&hash), sizeof(hash), data.begin());
+    }
+    
+    std::copy_n(data.begin(), KEY_SIZE, key.begin());
+    return key;
+}
+
 
 
 

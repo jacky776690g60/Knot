@@ -83,6 +83,11 @@
     "utility": "cpp",
     "format": "cpp",
     "stop_token": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "__tree": "cpp",
+    "deque": "cpp",
+    "map": "cpp",
+    "regex": "cpp",
+    "stack": "cpp"
   }
 }

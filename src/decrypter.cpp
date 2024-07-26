@@ -14,8 +14,19 @@ void decryptFile(const std::string& filename, const std::string& password) {
         throw std::runtime_error("Unable to open input file: " + filePath.string());
     }
 
-    // Skip the Knot signature
-    inFile.seekg(KNOT_SIGNATURE.size());
+    std::array<char, 8> signature;
+    inFile.read(signature.data(), signature.size());
+    if (signature != KNOT_SIGNATURE) {
+        throw std::runtime_error("Invalid file format: " + filePath.string());
+    }
+
+    std::vector<uint8_t> salt(SALT_SIZE);
+    inFile.read(reinterpret_cast<char*>(salt.data()), SALT_SIZE);
+
+    std::vector<uint8_t> iv(IV_SIZE);
+    inFile.read(reinterpret_cast<char*>(iv.data()), IV_SIZE);
+
+    auto key = deriveKey(password, salt);
 
     std::filesystem::path outPath = filePath.parent_path() / filePath.stem();
     std::ofstream outFile(outPath, std::ios::binary);
@@ -23,14 +34,27 @@ void decryptFile(const std::string& filename, const std::string& password) {
         throw std::runtime_error("Unable to create output file: " + outPath.string());
     }
 
-    char c;
-    size_t i = 0;
-    while (inFile.get(c)) {
-        c ^= password[i % password.length()];
-        outFile.put(c);
-        i++;
+    std::vector<uint8_t> buffer(1024);
+    size_t position = 0;
+    while (inFile.read(reinterpret_cast<char*>(buffer.data()), buffer.size())) {
+        size_t bytesRead = inFile.gcount();
+        for (size_t i = 0; i < bytesRead; ++i) {
+            buffer[i] ^= key[position % key.size()] ^ iv[position % iv.size()];
+            position++;
+        }
+        outFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
     }
     
+    // Handle any remaining bytes
+    if (inFile.gcount() > 0) {
+        size_t bytesRead = inFile.gcount();
+        for (size_t i = 0; i < bytesRead; ++i) {
+            buffer[i] ^= key[position % key.size()] ^ iv[position % iv.size()];
+            position++;
+        }
+        outFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
+    }
+
     if (inFile.bad()) {
         throw std::runtime_error("Error reading from file: " + filePath.string());
     }
@@ -70,7 +94,7 @@ int main() {
                     std::cerr << "Error decrypting " << file << ": " << e.what() << std::endl;
                 }
             } else {
-                std::cout << "Skipped (not a valid Knot encrypted file)..." << file << std::endl;
+                std::cout << "Skipped (not a valid Knot encrypted file): " << file << std::endl;
             }
         }
     } catch (const std::exception& e) {

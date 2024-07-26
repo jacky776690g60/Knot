@@ -20,17 +20,37 @@ void encryptFile(const std::string& filename, const std::string& password) {
         throw std::runtime_error("Unable to create output file: " + outPath.string());
     }
     
-    // Write the Knot signature
     outFile.write(KNOT_SIGNATURE.data(), KNOT_SIGNATURE.size());
 
-    char c;
-    size_t i = 0;
-    while (inFile.get(c)) {
-        c ^= password[i % password.length()];
-        outFile.put(c);
-        i++;
+    auto salt = generateRandomBytes(SALT_SIZE);
+    outFile.write(reinterpret_cast<char*>(salt.data()), salt.size());
+
+    auto iv = generateRandomBytes(IV_SIZE);
+    outFile.write(reinterpret_cast<char*>(iv.data()), iv.size());
+
+    auto key = deriveKey(password, salt);
+
+    std::vector<uint8_t> buffer(1024);
+    size_t position = 0;
+    while (inFile.read(reinterpret_cast<char*>(buffer.data()), buffer.size())) {
+        size_t bytesRead = inFile.gcount();
+        for (size_t i = 0; i < bytesRead; ++i) {
+            buffer[i] ^= key[position % key.size()] ^ iv[position % iv.size()];
+            position++;
+        }
+        outFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
     }
     
+    // Handle any remaining bytes
+    if (inFile.gcount() > 0) {
+        size_t bytesRead = inFile.gcount();
+        for (size_t i = 0; i < bytesRead; ++i) {
+            buffer[i] ^= key[position % key.size()] ^ iv[position % iv.size()];
+            position++;
+        }
+        outFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
+    }
+
     if (inFile.bad()) {
         throw std::runtime_error("Error reading from file: " + filePath.string());
     }
@@ -41,31 +61,6 @@ void encryptFile(const std::string& filename, const std::string& password) {
 
     inFile.close();
     outFile.close();
-
-
-    // Get the executable's directory
-    std::filesystem::path executablePath = std::filesystem::current_path();
-
-    // Create refs folder in the executable's directory if it doesn't exist
-    std::filesystem::path refsPath = executablePath / "refs";
-    std::filesystem::create_directories(refsPath);
-
-    // Create empty file in refs folder
-    std::filesystem::path emptyFilePath = refsPath / filePath.filename();
-    std::ofstream emptyFile(emptyFilePath);
-    if (!emptyFile) {
-        throw std::runtime_error("Unable to create empty file: " + emptyFilePath.string());
-    }
-    
-    int repetitions = 5;
-    for (int i = 0; i < repetitions; ++i) {
-        emptyFile << "reference" << (i < repetitions-1 ? "\n" : "");
-    }
-    emptyFile.close();
-
-    if (!emptyFile) {
-        throw std::runtime_error("Error writing to reference file: " + emptyFilePath.string());
-    }
 }
 
 
@@ -91,15 +86,11 @@ int main() {
         
         for (const auto& file : targetFiles) {
             std::cout << "Processing file: " << file << std::endl;
-            if (!isKnotEncryptedFile(file)) {
-                try {
-                    encryptFile(file, password);
-                    std::cout << "Successfully encrypted: " << file << std::endl;
-                } catch (const std::exception& e) {
-                    std::cerr << "Error encrypting " << file << ": " << e.what() << std::endl;
-                }
-            } else {
-                std::cout << "Skipped (already encrypted)..." << std::endl;
+            try {
+                encryptFile(file, password);
+                std::cout << "Successfully encrypted: " << file << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Error encrypting " << file << ": " << e.what() << std::endl;
             }
         }
     } catch (const std::exception& e) {
