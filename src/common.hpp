@@ -97,6 +97,7 @@ std::string getPassword() {
 
 
 bool matchesWildcard(const std::string& text, const std::string& pattern) {
+    /** TODO: '*' and '**' not working properly for windows */ 
     std::string regexPattern = pattern;
     regexPattern = std::regex_replace(regexPattern, std::regex("\\*\\*"), ".*");
     regexPattern = std::regex_replace(regexPattern, std::regex("\\*"), "[^/\\\\]*");
