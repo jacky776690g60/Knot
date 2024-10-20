@@ -7,24 +7,12 @@
 # ================================================================
 #### Set static linkings
 if(MSVC)
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
     set(OPENSSL_USE_STATIC_LIBS TRUE)
 else()
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_STATIC_RUNTIME OFF)
-    set(OPENSSL_USE_STATIC_LIBS FALSE)
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
 #### Find external libraries
-find_package(Boost 1.70.0 REQUIRED COMPONENTS filesystem system)
-if(Boost_FOUND)
-    message(STATUS "Boost found: ${Boost_VERSION}")
-    include_directories(${Boost_INCLUDE_DIRS})
-else()
-    message(FATAL_ERROR "Boost not found!")
-endif()
-
 find_package(OpenSSL REQUIRED)
 if(OPENSSL_FOUND)
     message(STATUS "OpenSSL found: ${OPENSSL_VERSION}")
@@ -41,9 +29,9 @@ add_executable(cleaner cleaner.cpp)
 
 
 # ### Link external libraries to executables
-target_link_libraries(encrypter PRIVATE ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
-target_link_libraries(decrypter PRIVATE ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
-target_link_libraries(cleaner   PRIVATE ${Boost_LIBRARIES} OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(encrypter PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(decrypter PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(cleaner   PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
 
 ### Set output directory for executables
