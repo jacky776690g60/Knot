@@ -19,8 +19,17 @@ set(CMAKE_CXX_EXTENSIONS        OFF)
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>") # set dynamic lib
     add_compile_options(/W4)
-    
     set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/dist/_knot_win")
+    ## OpenSSL root for Windows
+    set(OPENSSL_ROOT_DIR    "C:/Program Files/OpenSSL-Win64"    CACHE PATH "OpenSSL root directory")
+    set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include"       CACHE PATH "OpenSSL include directory")
+    set(OPENSSL_LIBRARIES
+        "optimized;${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libssl.lib"
+        "debug;${OPENSSL_ROOT_DIR}/lib/VC/x64/MDd/libssl.lib"
+        "optimized;${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libcrypto.lib"
+        "debug;${OPENSSL_ROOT_DIR}/lib/VC/x64/MDd/libcrypto.lib"
+        CACHE STRING "OpenSSL libraries"
+    )
 elseif(APPLE)
     add_compile_options(-Wall -Wextra)
     set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/dist/_knot_mac"   CACHE PATH "Output directory for macOS")

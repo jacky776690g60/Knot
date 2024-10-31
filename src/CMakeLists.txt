@@ -48,15 +48,27 @@ function(copy_library target lib_path)
 endfunction()
 
 
+
 set(EXECUTABLES encrypter decrypter cleaner)
 # Platform-specific library copying
 if(MSVC)
-    # foreach(exec IN LISTS EXECUTABLES)
-    #     ...
-    #     # Copy OpenSSL DLLs
-    #     copy_library(${exec} "${OPENSSL_SSL_DLL}")
-    #     copy_library(${exec} "${OPENSSL_CRYPTO_DLL}")
-    # endforeach()
+    set(SSL_LIBS    "")
+    set(CRYPTO_LIBS "")
+
+    foreach(item IN LISTS OPENSSL_LIBRARIES)
+        if(item MATCHES "libssl\\.lib$")
+            list(APPEND SSL_LIBS "${item}")
+        elseif(item MATCHES "libcrypto\\.lib$")
+            list(APPEND CRYPTO_LIBS "${item}")
+        endif()
+    endforeach()
+
+    foreach(exec IN LISTS EXECUTABLES)
+        foreach(lib_path IN LISTS SSL_LIBS CRYPTO_LIBS)
+            message(STATUS "Copying OpenSSL library for ${exec}: ${lib_path}")
+            copy_library(${exec} "${lib_path}")
+        endforeach()
+    endforeach()
 elseif(UNIX AND NOT APPLE)
     # ...
 elseif(APPLE)
