@@ -88,6 +88,23 @@
     "deque": "cpp",
     "map": "cpp",
     "regex": "cpp",
-    "stack": "cpp"
+    "stack": "cpp",
+    "any": "cpp",
+    "cfenv": "cpp",
+    "complex": "cpp",
+    "csignal": "cpp",
+    "execution": "cpp",
+    "forward_list": "cpp",
+    "future": "cpp",
+    "list": "cpp",
+    "print": "cpp",
+    "queue": "cpp",
+    "set": "cpp",
+    "shared_mutex": "cpp",
+    "source_location": "cpp",
+    "strstream": "cpp",
+    "typeindex": "cpp",
+    "unordered_set": "cpp",
+    "valarray": "cpp"
   }
 }

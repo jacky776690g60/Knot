@@ -18,7 +18,8 @@
 #include <chrono>
 #include <algorithm>
 #include <functional>
-// #include <openssl/aes.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -34,22 +35,26 @@ namespace fs = std::filesystem;
 
 #include "JsonParser.hpp"
 
+const int SALT_SIZE = 16, 
+          KEY_SIZE  = 32, // 256bits
+          IV_SIZE   = 16;
 
-const int SALT_SIZE = 16;
-const int KEY_SIZE  = 32;//256bits
-const int IV_SIZE   = 16;
-
-
+/**
+ * Transform `std::string` to lowercase.
+ * @note unsigned char to properly handle extended ASCII characters (>127)
+ * @return lowercase string
+ */
 std::string toLower(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c){ return std::tolower(c); });
+    std::transform(
+        s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); }
+    );
     return s;
 }
 
 
 std::string getPassword() {
     const char BACKSPACE = 8;
-    const char RETURN = 13;
+    const char RETURN    = 13;
 
     std::string password;
     int ch = 0;
@@ -107,33 +112,55 @@ bool matchesWildcard(const std::string& text, const std::string& pattern) {
 }
 
 
+/** 
+ * Generates a vector of random (0 ~ 255) bytes.
+ * @note Uses hardware random device as seed for Mersenne Twister
+ * @example
+ * auto ten_random_bytes = generateRandomBytes(10);
+ */
 std::vector<uint8_t> generateRandomBytes(size_t size) {
     std::vector<uint8_t> bytes(size);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 255);
+    std::random_device   rd;                     // hardware rand-num generator src
+    std::mt19937         gen(rd());              // mt pseudorandom generator
+    std::uniform_int_distribution<> dis(0, 255); // get uniform random numbers (0 ~ 255)
     std::generate(bytes.begin(), bytes.end(), [&]() { return static_cast<uint8_t>(dis(gen)); });
     return bytes;
 }
 
 
-
-
-std::vector<uint8_t> deriveKey(const std::string& password, const std::vector<uint8_t>& salt) {
-    /** TODO: Implement proper cryptographic hashing (e.g., SHA-256) and key stretching */ 
-
-    std::vector<uint8_t> key;
-    std::vector<uint8_t> combined = salt;
-    combined.insert(combined.end(), password.begin(), password.end());
-
+/**
+ * Derive a key from combining `password` and `salt`
+ * @deprecated Use SHA256
+ */
+[[deprecated("Simple derviekey function.")]]
+std::vector<uint8_t> deriveKey_d(const std::string& password, const std::vector<uint8_t>& salt) {
+    std::vector<uint8_t> key;             // new vector
+    std::vector<uint8_t> combined = salt; // new vector initialized with salt
+    combined.insert(combined.end(), password.begin(), password.end()); // append to end
     // Simple key derivation: repeating the combined salt and password
     while (key.size() < KEY_SIZE) {
         key.insert(key.end(), combined.begin(), combined.end());
     }
-
-    // Truncate to ensure the key is exactly KEY_SIZE bytes
-    key.resize(KEY_SIZE);
-
+    key.resize(KEY_SIZE); // Truncate key to size of KEY_SIZE bytes
+    return key;
+}
+/** Derive a key from combining `password` and `salt` with SHA256 */
+std::vector<uint8_t> deriveKey(const std::string& password, const std::vector<uint8_t>& salt) {
+    std::vector<uint8_t> key(KEY_SIZE);
+    if (PKCS5_PBKDF2_HMAC(
+            password.c_str(), 
+            password.length(),
+            salt.data(),      
+            salt.size(),
+            10000,        // 10000 iterations
+            EVP_sha256(),
+            KEY_SIZE,
+            key.data()
+        ) != 1
+    ) {
+        throw std::runtime_error("PBKDF2 key derivation failed");
+    }
+    
     return key;
 }
 
