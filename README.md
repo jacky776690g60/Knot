@@ -11,8 +11,9 @@
 
 <h1 id="build" style="font-weight: 700; text-transform: capitalize; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #EA638C;">&#9698; build</h1>
 <a href='#toc0' style='background: #000; margin:0 auto; padding: 5px; border-radius: 5px;'>Back to ToC</a><br><br>
+
 - MacOS
-  1. Run `./build.sh --force` to build from CMake if this is the first time you're building it; otherwise, `./build.sh`
+   1. Run `./build.sh --force` to build from CMake if this is the first time you're building it; otherwise, `./build.sh`
 
 
 <h1 id="Requirements" style="font-weight: 700; text-transform: capitalize; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #EA638C;">&#9698; Requirements</h1>
