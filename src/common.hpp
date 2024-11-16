@@ -42,13 +42,25 @@ const int SALT_SIZE = 16,
 /**
  * Transform `std::string` to lowercase.
  * @note unsigned char to properly handle extended ASCII characters (>127)
- * @return lowercase string
  */
-std::string toLower(std::string s) {
+void toLower(std::string& s) {
     std::transform(
         s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); }
     );
-    return s;
+}
+
+/** 
+ * Strip the string 
+ */
+void strip(std::string& str) {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) {
+        str.clear();
+        return;
+    }
+    size_t last = str.find_last_not_of(" \t\n\r");
+    str.erase(last + 1); // Erase trailing whitespace
+    str.erase(0, first); // Erase leading whitespace
 }
 
 
@@ -310,6 +322,9 @@ std::vector<std::string> findKnotFiles() {
     return knotFiles;
 }
 
+/**
+ * First check if it is really encrypted by Knot. If so, remove it.
+ */
 void removeKnotFile(const std::string& filename) {
     if (isKnotEncryptedFile(filename)) {
         fs::remove(filename);

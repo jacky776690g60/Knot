@@ -10,7 +10,7 @@ int main() {
     try {
         std::vector<std::string> knotFiles = findKnotFiles();
         
-        std::cout << "Found .knot files:" << std::endl;
+        std::cout << "Found the following .knot files:" << std::endl;
         for (const auto& file : knotFiles) {
             std::cout << file << std::endl;
         }
@@ -23,9 +23,9 @@ int main() {
         std::string confirmation;
         std::cout << "Are you sure you want to remove these files? (yes/no): ";
         std::cin >> confirmation;
+        toLower(confirmation);
+        strip(confirmation);
         
-        confirmation = toLower(confirmation);
-
         if (confirmation == "yes" || confirmation == "y") {
             for (const auto& file : knotFiles) {
                 try {
