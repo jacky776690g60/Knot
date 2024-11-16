@@ -25,25 +25,27 @@ void encryptFile(const std::string& filename, const std::string& password) {
         throw std::runtime_error("Unable to create output file: " + outPath.string());
     }
     
-    // std::cout << "Writing signature..." << std::endl;
-    outFile.write(KNOT_SIGNATURE.data(), KNOT_SIGNATURE.size());
-
-    // std::cout << "Generating salt and IV..." << std::endl;
+    // =====================================================
+    // Writing signature, salt, iv
+    // =====================================================
+    
     auto salt = generateRandomBytes(SALT_SIZE);
+    auto iv   = generateRandomBytes(IV_SIZE);
+    outFile.write(KNOT_SIGNATURE.data(), KNOT_SIGNATURE.size());
     outFile.write(reinterpret_cast<char*>(salt.data()), salt.size());
-
-    auto iv = generateRandomBytes(IV_SIZE);
     outFile.write(reinterpret_cast<char*>(iv.data()), iv.size());
 
-    // std::cout << "Deriving key..." << std::endl;
+    // =====================================================
+    // Deriving key from password & salt
+    // =====================================================
+    /** Encryption key */
     auto key = deriveKey(password, salt);
-    // std::cout << "Key derived. Key size: " << key.size() << std::endl;
 
-    // std::cout << "Starting encryption loop..." << std::endl;
     std::vector<uint8_t> buffer(1024);
     size_t position = 0;
     while (inFile.read(reinterpret_cast<char*>(buffer.data()), buffer.size()) || inFile.gcount() > 0) {
         size_t bytesRead = inFile.gcount();
+        
         for (size_t i = 0; i < bytesRead; ++i) {
             buffer[i] ^= key[position % key.size()] ^ iv[position % iv.size()];
             position++;
@@ -51,20 +53,19 @@ void encryptFile(const std::string& filename, const std::string& password) {
         outFile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
     }
 
-    /** Ensure overall integrity at the end */
+    // ~~~~~~~~ Ensure overall integrity at the end ~~~~~~~~
     if (inFile.bad())  throw std::runtime_error("Error reading from file: " + filePath.string());
     if (outFile.bad()) throw std::runtime_error("Error writing to file: " + outPath.string());
 
     inFile.close();
     outFile.close();
 
-    /** ======================= */
-    /** Create a reference copycat file for github display */
-    /** ======================= */
-    // Get the executable's directory
+    // =====================================================
+    // Create a reference copycat file for github display
+    // =====================================================
+    /** The path to this built binary. */
     std::filesystem::path executablePath = std::filesystem::current_path();
-    // Create refs folder in the executable's directory if it doesn't exist
-    std::filesystem::path refsPath = executablePath / "refs";
+    std::filesystem::path refsPath       = executablePath / "refs";
     
     #ifdef _WIN32
         _mkdir(refsPath.string().c_str());
@@ -72,12 +73,9 @@ void encryptFile(const std::string& filename, const std::string& password) {
         std::filesystem::create_directories(refsPath);
     #endif
 
-    // Create empty file in refs folder
     std::filesystem::path emptyFilePath = refsPath / filePath.filename();
-    std::ofstream emptyFile(emptyFilePath);
-    if (!emptyFile) {
-        throw std::runtime_error("Unable to create empty file: " + emptyFilePath.string());
-    }
+    std::ofstream         emptyFile(emptyFilePath);
+    if (!emptyFile) throw std::runtime_error("Unable to create empty file: " + emptyFilePath.string());
 
     int repetitions = 5;
     for (int i = 0; i < repetitions; ++i) {

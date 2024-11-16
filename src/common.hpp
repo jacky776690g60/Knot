@@ -115,7 +115,7 @@ std::string getPassword() {
 
 
 bool matchesWildcard(const std::string& text, const std::string& pattern) {
-    /** TODO: '*' and '**' not working properly for windows */ 
+    /** TODO: test if working on windows */ 
     std::string regexPattern = pattern;
     regexPattern = std::regex_replace(regexPattern, std::regex("\\*\\*"), ".*");
     regexPattern = std::regex_replace(regexPattern, std::regex("\\*"), "[^/\\\\]*");
@@ -241,19 +241,14 @@ std::vector<std::string> getTargetFiles(const Config& config, int maxDepth = -1)
     std::vector<std::string> targetFiles;
     
     fs::path currentFilePath = fs::current_path();
-    fs::path parentPath = currentFilePath.parent_path();
-    std::cout << "Searching for files in: " << parentPath << std::endl;
+    fs::path parentPath      = currentFilePath.parent_path();
+    std::cout << "Searching for files with targeted extension(s) in: " << parentPath << std::endl;
 
     std::function<void(const fs::path&, int)> searchDirectory = 
         [&](const fs::path& path, int depth) {
             for (const auto& entry : fs::directory_iterator(path)) {
-                if (maxDepth >= 0 && depth > maxDepth) {
-                    break;
-                }
-
-                if (entry.path() == currentFilePath) {
-                    continue;
-                }
+                if (maxDepth >= 0 && depth > maxDepth)    break;
+                else if (entry.path() == currentFilePath) continue;
 
                 if (fs::is_directory(entry)) {
                     bool skip = false;
@@ -308,9 +303,13 @@ bool isKnotEncryptedFile(const std::string& filename) {
     return (file && signature == KNOT_SIGNATURE);
 }
 
+/**
+ * Locate files with the extension .knot
+ */
 std::vector<std::string> findKnotFiles() {
     std::vector<std::string> knotFiles;
     fs::path parentPath = fs::current_path().parent_path();
+
     std::cout << "Searching for .knot files in: " << parentPath << std::endl;
 
     for (const auto& entry : fs::recursive_directory_iterator(parentPath)) {
